@@ -1,16 +1,20 @@
 
+local S = mobs.intllib
+
+
 -- Cow by Krupnovpavel (additional texture by JurajVajda)
 
 mobs:register_mob("mobs_animal:cow", {
 	type = "animal",
 	passive = false,
 	attack_type = "dogfight",
+	attack_npcs = false,
 	reach = 2,
 	damage = 4,
 	hp_min = 5,
 	hp_max = 20,
 	armor = 200,
-	collisionbox = {-0.4, -0.01, -0.4, 0.4, 1, 0.4},
+	collisionbox = {-0.4, -0.01, -0.4, 0.4, 1.2, 0.4},
 	visual = "mesh",
 	mesh = "mobs_cow.x",
 	textures = {
@@ -24,9 +28,10 @@ mobs:register_mob("mobs_animal:cow", {
 	walk_velocity = 1,
 	run_velocity = 2,
 	jump = true,
+	jump_height = 6,
 	drops = {
 		{name = "mobs:meat_raw", chance = 1, min = 1, max = 3},
-		{name = "mobs:leather", chance = 1, min = 1, max = 2},
+		{name = "mobs:leather", chance = 1, min = 0, max = 2},
 	},
 	water_damage = 1,
 	lava_damage = 5,
@@ -44,19 +49,25 @@ mobs:register_mob("mobs_animal:cow", {
 		punch_end = 100,
 	},
 	follow = "farming:wheat",
-	view_range = 7,
+	view_range = 8,
 	replace_rate = 10,
-	replace_what = {"default:grass_3", "default:grass_4", "default:grass_5", "farming:wheat_8"},
+	replace_what = {
+		{"group:grass", "air", 0},
+		{"group:flower", "air", 0},
+		{"group:flora", "air", 0},
+		{"default:dirt_with_grass", "default:dirt", -1}
+	},
 	replace_with = "air",
 	fear_height = 2,
 	on_rightclick = function(self, clicker)
 
 		-- feed or tame
-		if mobs:feed_tame(self, clicker, 8, true, true) then
-			return
-		end
+		if mobs:feed_tame(self, clicker, 8, true, true) then return end
+		if mobs:protect(self, clicker) then return end
+		if mobs:capture_mob(self, clicker, 0, 5, 60, false, nil) then return end
 
 		local tool = clicker:get_wielded_item()
+		local name = clicker:get_player_name()
 
 		-- milk cow with empty bucket
 		if tool:get_name() == "bucket:bucket_empty" then
@@ -67,8 +78,8 @@ mobs:register_mob("mobs_animal:cow", {
 			end
 
 			if self.gotten == true then
-				minetest.chat_send_player(clicker:get_player_name(),
-						"Cow already milked!")
+				minetest.chat_send_player(name,
+					S("Cow already milked!"))
 				return
 			end
 
@@ -79,7 +90,7 @@ mobs:register_mob("mobs_animal:cow", {
 			if inv:room_for_item("main", {name = "mobs:bucket_milk"}) then
 				clicker:get_inventory():add_item("main", "mobs:bucket_milk")
 			else
-				local pos = self.object:getpos()
+				local pos = self.object:get_pos()
 				pos.y = pos.y + 0.5
 				minetest.add_item(pos, {name = "mobs:bucket_milk"})
 			end
@@ -88,32 +99,68 @@ mobs:register_mob("mobs_animal:cow", {
 
 			return
 		end
-
-		mobs:capture_mob(self, clicker, 0, 5, 60, false, nil)
 	end,
 })
 
-mobs:register_spawn("mobs_animal:cow",
-	{"default:dirt_with_grass", "ethereal:green_dirt"}, 20, 10, 15000, 1, 31000, true)
 
-mobs:register_egg("mobs_animal:cow", "Cow", "default_grass.png", 1)
+mobs:spawn({
+	name = "mobs_animal:cow",
+	nodes = {"default:dirt_with_grass", "ethereal:green_dirt"},
+	neighbors = {"group:grass"},
+	min_light = 14,
+	interval = 60,
+	chance = 8000, -- 15000
+	min_height = 5,
+	max_height = 200,
+	day_toggle = true,
+})
 
--- compatibility
-mobs:alias_mob("mobs:cow", "mobs_animal:cow")
+
+mobs:register_egg("mobs_animal:cow", S("Cow"), "default_grass.png", 1)
+
+
+mobs:alias_mob("mobs:cow", "mobs_animal:cow") -- compatibility
+
 
 -- bucket of milk
 minetest.register_craftitem(":mobs:bucket_milk", {
-	description = "Bucket of Milk",
+	description = S("Bucket of Milk"),
 	inventory_image = "mobs_bucket_milk.png",
 	stack_max = 1,
 	on_use = minetest.item_eat(8, 'bucket:bucket_empty'),
+	groups = {food_milk = 1, flammable = 3},
 })
+
+-- butter
+minetest.register_craftitem(":mobs:butter", {
+	description = S("Butter"),
+	inventory_image = "mobs_butter.png",
+	on_use = minetest.item_eat(1),
+	groups = {food_butter = 1, flammable = 2},
+})
+
+if minetest.get_modpath("farming") and farming and farming.mod then
+minetest.register_craft({
+	type = "shapeless",
+	output = "mobs:butter",
+	recipe = {"mobs:bucket_milk", "farming:salt"},
+	replacements = {{ "mobs:bucket_milk", "bucket:bucket_empty"}}
+})
+else -- some saplings are high in sodium so makes a good replacement item
+minetest.register_craft({
+	type = "shapeless",
+	output = "mobs:butter",
+	recipe = {"mobs:bucket_milk", "default:sapling"},
+	replacements = {{ "mobs:bucket_milk", "bucket:bucket_empty"}}
+})
+end
 
 -- cheese wedge
 minetest.register_craftitem(":mobs:cheese", {
-	description = "Cheese",
+	description = S("Cheese"),
 	inventory_image = "mobs_cheese.png",
 	on_use = minetest.item_eat(4),
+	groups = {food_cheese = 1, flammable = 2},
 })
 
 minetest.register_craft({
@@ -126,7 +173,7 @@ minetest.register_craft({
 
 -- cheese block
 minetest.register_node(":mobs:cheeseblock", {
-	description = "Cheese Block",
+	description = S("Cheese Block"),
 	tiles = {"mobs_cheeseblock.png"},
 	is_ground_content = false,
 	groups = {crumbly = 3},

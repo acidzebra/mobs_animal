@@ -1,9 +1,19 @@
 
+local S = mobs.intllib
+
+
 -- Kitten by Jordach / BFD
 
 mobs:register_mob("mobs_animal:kitten", {
+stepheight = 0.6,
 	type = "animal",
-	passive = true,
+specific_attack = {"mobs_animal:rat"},
+damage = 1,
+attack_type = "dogfight",
+attack_animals = true, -- so it can attack rat
+attack_players = false,
+reach = 1,
+	passive = false,
 	hp_min = 5,
 	hp_max = 10,
 	armor = 200,
@@ -26,7 +36,7 @@ mobs:register_mob("mobs_animal:kitten", {
 	runaway = true,
 	jump = false,
 	drops = {
-		{name = "farming:string", chance = 1, min = 1, max = 1},
+		{name = "farming:string", chance = 1, min = 0, max = 1},
 	},
 	water_damage = 1,
 	lava_damage = 5,
@@ -38,22 +48,37 @@ mobs:register_mob("mobs_animal:kitten", {
 		walk_start = 0,
 		walk_end = 96,
 	},
-	follow = {"mobs:rat", "ethereal:fish_raw", "mobs_fish:clownfish", "mobs_fish:tropical"},
+	follow = {"mobs_animal:rat", "ethereal:fish_raw", "mobs_fish:clownfish", "mobs_fish:tropical"},
 	view_range = 8,
 	on_rightclick = function(self, clicker)
 
-		if mobs:feed_tame(self, clicker, 4, true, true) then
-			return
-		end
-
-		mobs:capture_mob(self, clicker, 50, 50, 90, false, nil)
+		if mobs:feed_tame(self, clicker, 4, true, true) then return end
+		if mobs:protect(self, clicker) then return end
+		if mobs:capture_mob(self, clicker, 50, 50, 90, false, nil) then return end
 	end
 })
 
-mobs:register_spawn("mobs_animal:kitten",
-	{"default:dirt_with_grass", "ethereal:grove_dirt"}, 20, 12, 22000, 1, 31000, true)
 
-mobs:register_egg("mobs_animal:kitten", "Kitten", "mobs_kitten_inv.png", 0)
+local spawn_on = "default:dirt_with_grass"
 
--- compatibility
-mobs:alias_mob("mobs:kitten", "mobs_animal:kitten")
+if minetest.get_modpath("ethereal") then
+	spawn_on = "ethereal:grove_dirt"
+end
+
+mobs:spawn({
+	name = "mobs_animal:kitten",
+	nodes = {spawn_on},
+	neighbors = {"group:grass"},
+	min_light = 14,
+	interval = 60,
+	chance = 10000, -- 22000
+	min_height = 5,
+	max_height = 200,
+	day_toggle = true,
+})
+
+
+mobs:register_egg("mobs_animal:kitten", S("Kitten"), "mobs_kitten_inv.png", 0)
+
+
+mobs:alias_mob("mobs:kitten", "mobs_animal:kitten") -- compatibility

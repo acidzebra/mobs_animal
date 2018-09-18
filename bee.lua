@@ -1,4 +1,6 @@
 
+local S = mobs.intllib
+
 -- Bee by KrupnoPavel
 
 mobs:register_mob("mobs_animal:bee", {
@@ -7,7 +9,7 @@ mobs:register_mob("mobs_animal:bee", {
 	hp_min = 1,
 	hp_max = 2,
 	armor = 200,
-	collisionbox = {-0.2, -0.01, -0.2, 0.2, 0.2, 0.2},
+	collisionbox = {-0.2, -0.01, -0.2, 0.2, 0.5, 0.2},
 	visual = "mesh",
 	mesh = "mobs_bee.x",
 	textures = {
@@ -35,29 +37,41 @@ mobs:register_mob("mobs_animal:bee", {
 		walk_end = 65,
 	},
 	on_rightclick = function(self, clicker)
-		mobs:capture_mob(self, clicker, 25, 80, 0, true, nil)
+		mobs:capture_mob(self, clicker, 50, 90, 0, true, "mobs_animal:bee")
 	end,
+--	after_activate = function(self, staticdata, def, dtime)
+--		print ("------", self.name, dtime, self.health)
+--	end,
 })
 
-mobs:register_spawn("mobs_animal:bee", {"group:flower"}, 20, 10, 9000, 1, 31000, true)
+mobs:spawn({
+	name = "mobs_animal:bee",
+	nodes = {"group:flower"},
+	min_light = 14,
+	interval = 60,
+	chance = 7000,
+	min_height = 3,
+	max_height = 200,
+	day_toggle = true,
+})
 
-mobs:register_egg("mobs_animal:bee", "Bee", "mobs_bee_inv.png", 0)
+mobs:register_egg("mobs_animal:bee", S("Bee"), "mobs_bee_inv.png", 0)
 
 -- compatibility
 mobs:alias_mob("mobs:bee", "mobs_animal:bee")
 
 -- honey
 minetest.register_craftitem(":mobs:honey", {
-	description = "Honey",
+	description = S("Honey"),
 	inventory_image = "mobs_honey_inv.png",
-	on_use = minetest.item_eat(6),
+	on_use = minetest.item_eat(4),
+	groups = {food_honey = 1, food_sugar = 1, flammable = 1},
 })
 
 -- beehive (when placed spawns bee)
 minetest.register_node(":mobs:beehive", {
-	description = "Beehive",
+	description = S("Beehive"),
 	drawtype = "plantlike",
-	visual_scale = 1.0,
 	tiles = {"mobs_beehive.png"},
 	inventory_image = "mobs_beehive.png",
 	paramtype = "light",
@@ -79,19 +93,19 @@ minetest.register_node(":mobs:beehive", {
 
 		meta:get_inventory():set_size("beehive", 1)
 	end,
---[[
+
 	after_place_node = function(pos, placer, itemstack)
 
-		if placer:is_player() then
+		if placer and placer:is_player() then
 
 			minetest.set_node(pos, {name = "mobs:beehive", param2 = 1})
 
 			if math.random(1, 4) == 1 then
-				minetest.add_entity(pos, "mobs:bee")
+				minetest.add_entity(pos, "mobs_animal:bee")
 			end
 		end
 	end,
-]]
+
 	on_punch = function(pos, node, puncher)
 
 		-- yep, bee's don't like having their home punched by players
@@ -126,7 +140,7 @@ minetest.register_craft({
 
 -- honey block
 minetest.register_node(":mobs:honey_block", {
-	description = "Honey Block",
+	description = S("Honey Block"),
 	tiles = {"mobs_honey_block.png"},
 	groups = {snappy = 3, flammable = 2},
 	sounds = default.node_sound_dirt_defaults(),
@@ -151,7 +165,7 @@ minetest.register_craft({
 -- beehive workings
 minetest.register_abm({
 	nodenames = {"mobs:beehive"},
-	interval = 6,
+	interval = 12,
 	chance = 6,
 	catch_up = false,
 	action = function(pos, node)
@@ -166,11 +180,11 @@ minetest.register_abm({
 		-- is hive full?
 		local meta = minetest.get_meta(pos)
 		if not meta then return end -- for older beehives
-		local inv = minetest.get_meta(pos):get_inventory()
+		local inv = meta:get_inventory()
 		local honey = inv:get_stack("beehive", 1):get_count()
 
 		-- is hive full?
-		if honey > 19 then
+		if honey > 11 then
 			return
 		end
 

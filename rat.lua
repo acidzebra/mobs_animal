@@ -1,7 +1,11 @@
 
+local S = mobs.intllib
+
+
 -- Rat by PilzAdam
 
 mobs:register_mob("mobs_animal:rat", {
+stepheight = 0.6,
 	type = "animal",
 	passive = true,
 	hp_min = 1,
@@ -27,33 +31,71 @@ mobs:register_mob("mobs_animal:rat", {
 	light_damage = 0,
 	fear_height = 2,
 	on_rightclick = function(self, clicker)
-		mobs:capture_mob(self, clicker, 25, 80, 0, true, nil)
+		mobs:capture_mob(self, clicker, 50, 90, 0, true, "mobs_animal:rat")
 	end,
 --[[
-	do_custom = function(self)
-		local pos = self.object:getpos()
-		print("rat pos", pos.x, pos.y, pos.z)
+	do_custom = function(self, dtime)
+
+		self.rat_timer = (self.rat_timer or 0) + dtime
+
+		if self.rat_timer < 1 then return end -- every 1 second
+
+		self.rat_timer = 0
+
+		local pos = self.object:get_pos()
+
+		print("rat pos", pos.x, pos.y, pos.z, dtime)
+
+		return false -- return but skip doing rest of API
 	end,
---]]
+]]
+--[[
+	on_blast = function(obj, damage)
+		print ("--- damage is", damage)
+		print ("---    mob is", obj.object:get_luaentity().name)
+		-- return's do_damage, do_knockback and drops
+		return false, true, {"default:mese"}
+	end,
+]]
 })
 
-mobs:register_spawn("mobs_animal:rat", {"default:stone"}, 20, 5, 15000, 2, 0)
 
-mobs:register_egg("mobs_animal:rat", "Rat", "mobs_rat_inventory.png", 0)
+local function rat_spawn(self, pos)
+	self = self:get_luaentity()
+	print (self.name, pos.x, pos.y, pos.z)
+	self.hp_max = 100
+	self.health = 100
+end
 
--- compatibility
-mobs:alias_mob("mobs:rat", "mobs_animal:rat")
+mobs:spawn({
+	name = "mobs_animal:rat",
+	nodes = {"default:stone"},
+	min_light = 3,
+	max_light = 9,
+	interval = 60,
+	chance = 8000,
+	max_height = 0,
+--	on_spawn = rat_spawn,
+})
+
+
+mobs:register_egg("mobs_animal:rat", S("Rat"), "mobs_rat_inventory.png", 0)
+
+
+mobs:alias_mob("mobs:rat", "mobs_animal:rat") -- compatibility
+
 
 -- cooked rat, yummy!
 minetest.register_craftitem(":mobs:rat_cooked", {
-	description = "Cooked Rat",
+	description = S("Cooked Rat"),
 	inventory_image = "mobs_cooked_rat.png",
 	on_use = minetest.item_eat(3),
+	groups = {food_rat = 1, flammable = 2},
 })
 
 minetest.register_craft({
 	type = "cooking",
 	output = "mobs:rat_cooked",
-	recipe = "mobs:rat",
+	recipe = "mobs_animal:rat",
 	cooktime = 5,
 })
